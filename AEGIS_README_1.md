@@ -26,7 +26,7 @@ AEGIS removes every one of those barriers. A defense instructor anywhere in the 
 Open `index.html` in any browser. No installation required.
 
 Or visit the live hosted version:  
-🔗 file:///Users/rohangupta.8490gmail.com/Downloads/AEGIS_Drone_Defense_9.html
+🔗 https://rohangupta214.github.io/aegis-drone-defense
 
 ---
 
