@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEGIS — Drone Defense System</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#020c14; --panel:#04111e; --border:#0a2a40;
+  --cyan:#00e5ff; --red:#ff3d00; --green:#76ff03;
+  --amber:#ffab00; --purple:#aa00ff; --blue:#2979ff;
+  --text:#b0c4ce; --texthi:#e8f4f8; --dim:#4a6070;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Rajdhani',sans-serif;font-size:15px;height:100vh;overflow:hidden;display:flex;flex-direction:column;}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;padding:8px 20px;background:var(--panel);border-bottom:2px solid var(--border);flex-shrink:0;gap:16px;}
+.logo{font-family:'Orbitron',monospace;font-size:20px;font-weight:900;color:var(--cyan);letter-spacing:3px;text-shadow:0 0 16px rgba(0,229,255,.5);white-space:nowrap;}
+.logo span{color:var(--amber);}
+.hstats{display:flex;gap:20px;flex-shrink:0;}
+.hstat{text-align:center;}
+.hstat-lbl{font-size:10px;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;}
+.hstat-val{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--texthi);}
+
+/* STATUS BAR */
+.sbar{display:flex;align-items:center;gap:16px;padding:5px 20px;background:rgba(4,17,30,.9);border-bottom:1px solid var(--border);font-size:13px;letter-spacing:1px;flex-shrink:0;}
+.sdot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);display:inline-block;margin-right:5px;}
+.sdot.warn{background:var(--amber);box-shadow:0 0 8px var(--amber);}
+.sdot.red{background:var(--red);box-shadow:0 0 8px var(--red);}
+#alertMsg{margin-left:auto;font-weight:700;font-size:13px;color:var(--red);}
+
+/* MAIN LAYOUT */
+.main{display:flex;flex:1;overflow:hidden;gap:0;}
+.lpanel{width:230px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);overflow-y:auto;padding:10px;}
+.lpanel::-webkit-scrollbar{width:4px;}
+.lpanel::-webkit-scrollbar-thumb{background:var(--border);}
+.canvas-area{flex:1;display:flex;align-items:stretch;justify-content:stretch;position:relative;overflow:hidden;}
+canvas#mc{display:block;width:100%;height:100%;}
+.rpanel{width:230px;flex-shrink:0;background:var(--panel);border-left:1px solid var(--border);overflow-y:auto;padding:10px;}
+.rpanel::-webkit-scrollbar{width:4px;}
+.rpanel::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* PANEL SECTIONS */
+.sec{margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.sec:last-child{border-bottom:none;}
+.sec-title{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--cyan);margin-bottom:10px;opacity:.85;}
+.row{display:flex;gap:6px;margin-bottom:6px;}
+
+/* BUTTONS */
+.btn{border:none;cursor:pointer;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1px;padding:9px 10px;border-radius:3px;text-transform:uppercase;transition:all .15s;flex:1;}
+.btn-launch{background:linear-gradient(135deg,#b71c1c,#e53935);color:#fff;box-shadow:0 0 12px rgba(229,57,53,.4);}
+.btn-launch:hover{box-shadow:0 0 20px rgba(229,57,53,.7);transform:translateY(-1px);}
+.btn-reset{background:rgba(0,0,0,.4);color:var(--dim);border:1px solid var(--border);}
+.btn-reset:hover{color:var(--texthi);border-color:var(--dim);}
+
+/* CONTROLS */
+.ctrl{margin-bottom:10px;}
+.ctrl-lbl{display:flex;justify-content:space-between;font-size:13px;color:var(--text);margin-bottom:4px;}
+.ctrl-lbl span{color:var(--cyan);font-family:'Share Tech Mono',monospace;font-size:12px;}
+input[type=range]{width:100%;-webkit-appearance:none;height:4px;background:var(--border);border-radius:2px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--cyan);cursor:pointer;box-shadow:0 0 6px var(--cyan);}
+input[type=range].red::-webkit-slider-thumb{background:var(--red);box-shadow:0 0 6px var(--red);}
+input[type=range].green::-webkit-slider-thumb{background:var(--green);box-shadow:0 0 6px var(--green);}
+select{width:100%;background:rgba(0,0,0,.5);border:1px solid var(--border);color:var(--texthi);padding:7px 8px;font-size:13px;border-radius:3px;font-family:'Rajdhani',sans-serif;cursor:pointer;}
+
+/* TOGGLES */
+.tog-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+.tog-lbl{font-size:13px;color:var(--text);}
+.tog{width:32px;height:16px;background:var(--border);border-radius:8px;cursor:pointer;position:relative;transition:background .2s;}
+.tog.on{background:var(--cyan);}
+.tog::after{content:'';position:absolute;top:2px;left:2px;width:12px;height:12px;background:#fff;border-radius:50%;transition:left .2s;}
+.tog.on::after{left:18px;}
+
+/* TELEMETRY */
+.trow{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;padding:4px 0;border-bottom:1px solid rgba(10,40,64,.5);}
+.trow:last-child{border-bottom:none;}
+.tk{font-size:12px;color:var(--dim);letter-spacing:.5px;}
+.tv{font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--texthi);}
+.tv.green{color:var(--green);}
+.tv.red{color:var(--red);}
+.tv.warn{color:var(--amber);}
+.tv.cyan{color:var(--cyan);}
+.tv.purple{color:var(--purple);}
+
+/* RISK METER */
+.risk-num{font-family:'Orbitron',monospace;font-size:38px;font-weight:900;text-align:center;line-height:1;}
+.risk-lbl{font-size:13px;letter-spacing:2px;text-align:center;margin:4px 0 8px;}
+.risk-track{height:8px;background:var(--border);border-radius:4px;overflow:hidden;margin-bottom:4px;}
+.risk-fill{height:100%;border-radius:4px;transition:width .4s,background .4s;}
+.risk-marks{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);}
+
+/* AI LOG */
+.log{height:140px;overflow-y:auto;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:3px;padding:6px;font-family:'Share Tech Mono',monospace;font-size:11px;}
+.log::-webkit-scrollbar{width:3px;}
+.log::-webkit-scrollbar-thumb{background:var(--border);}
+.log-line{margin-bottom:3px;line-height:1.4;}
+.log-line.green{color:var(--green);}
+.log-line.red{color:var(--red);}
+.log-line.warn{color:var(--amber);}
+.log-line.cyan{color:var(--cyan);}
+
+/* INTERCEPT STATS */
+.istat{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:3px;padding:7px 10px;margin-bottom:6px;}
+.istat-ico{font-size:18px;}
+.istat-body{flex:1;}
+.istat-val{font-family:'Orbitron',monospace;font-size:16px;font-weight:700;color:var(--green);}
+.istat-lbl{font-size:11px;color:var(--dim);letter-spacing:.5px;}
+
+/* DUAL MINI SIM */
+.dual{display:flex;gap:8px;margin-top:6px;}
+.mini-wrap{flex:1;text-align:center;}
+.mini-wrap canvas{width:100%;height:60px;display:block;border:1px solid var(--border);border-radius:3px;}
+.mini-lbl{font-size:10px;letter-spacing:1px;color:var(--dim);margin-bottom:3px;}
+.mini-result{font-size:11px;font-weight:700;margin-top:2px;letter-spacing:1px;}
+
+/* DEBRIS LIST */
+.dlist{max-height:100px;overflow-y:auto;font-family:'Share Tech Mono',monospace;font-size:11px;}
+.dlist::-webkit-scrollbar{width:3px;}
+.ditem{display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(10,40,64,.4);gap:8px;}
+.did{color:var(--red);}
+.dpos{color:var(--dim);}
+.dvel{color:var(--amber);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">AEGIS <span>·</span> DRONE DEFENSE</div>
+  <div class="hstats">
+    <div class="hstat"><div class="hstat-lbl">Threats</div><div class="hstat-val" id="hThreat">0</div></div>
+    <div class="hstat"><div class="hstat-lbl">Neutralised</div><div class="hstat-val" id="hNeutral" style="color:var(--green)">0</div></div>
+    <div class="hstat"><div class="hstat-lbl">Breached</div><div class="hstat-val" id="hBreach" style="color:var(--red)">0</div></div>
+    <div class="hstat"><div class="hstat-lbl">Success Rate</div><div class="hstat-val" id="hRate" style="color:var(--cyan)">—</div></div>
+    <div class="hstat"><div class="hstat-lbl">Sim Time</div><div class="hstat-val" id="hTime" style="color:var(--text)">00:00</div></div>
+  </div>
+</header>
+
+<div class="sbar">
+  <div><span class="sdot" id="sd1"></span> SYSTEM ONLINE</div>
+  <div><span class="sdot" id="sd2"></span> RADAR ACTIVE</div>
+  <div><span class="sdot" id="sd3"></span> INTERCEPT READY</div>
+  <div id="alertMsg"></div>
+</div>
+
+<div class="main">
+
+  <!-- LEFT PANEL -->
+  <div class="lpanel">
+
+    <div class="sec">
+      <div class="sec-title">// DRONE SCENARIO</div>
+      <select id="scenSel" onchange="loadScenario(this.value)">
+        <option value="recon">RECON DRONE (SLOW)</option>
+        <option value="kamikaze">KAMIKAZE DRONE</option>
+        <option value="swarm">DRONE SWARM (x3)</option>
+        <option value="loitering">LOITERING MUNITION</option>
+        <option value="stealth">STEALTH MICRO-DRONE</option>
+      </select>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">// LAUNCH</div>
+      <div class="row">
+        <button class="btn btn-launch" onclick="launchDrone()">▲ LAUNCH DRONE</button>
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--green);letter-spacing:1px;text-align:center;padding:4px 0;opacity:.85;">AUTO-INTERCEPT ACTIVE</div>
+      <div class="row">
+        <button class="btn btn-reset" onclick="resetSim()">↺ RESET</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">// DRONE PARAMETERS</div>
+      <div class="ctrl">
+        <div class="ctrl-lbl">Speed <span id="vVel">180 m/s</span></div>
+        <input type="range" id="slVel" min="40" max="600" value="180" oninput="upd('Vel',this.value,' m/s')">
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-lbl">Payload (kg) <span id="vPay">12 kg</span></div>
+        <input type="range" class="red" id="slPay" min="1" max="100" value="12" oninput="upd('Pay',this.value,' kg')">
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-lbl">RCS Signature <span id="vRCS">Medium</span></div>
+        <input type="range" id="slRCS" min="1" max="3" value="2" oninput="updRCS(this.value)">
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">// DEFENSE PARAMS</div>
+      <div class="ctrl">
+        <div class="ctrl-lbl">Interceptor Speed <span id="vISpd">520 m/s</span></div>
+        <input type="range" class="green" id="slISpd" min="200" max="1200" value="520" oninput="upd('ISpd',this.value,' m/s')">
+      </div>
+      <div class="ctrl">
+        <div class="ctrl-lbl">Engagement Range <span id="vIRng">70%</span></div>
+        <input type="range" class="green" id="slIRng" min="30" max="95" value="70" oninput="upd('IRng',this.value,'%')">
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">// DISPLAY</div>
+      <div class="tog-row"><span class="tog-lbl">Trajectory Trail</span><div class="tog on" id="togTraj" onclick="tog('Traj')"></div></div>
+      <div class="tog-row"><span class="tog-lbl">Radar Sweep</span><div class="tog on" id="togRadar" onclick="tog('Radar')"></div></div>
+      <div class="tog-row"><span class="tog-lbl">Debris Field</span><div class="tog on" id="togDebris" onclick="tog('Debris')"></div></div>
+      <div class="tog-row"><span class="tog-lbl">Threat Heatmap</span><div class="tog" id="togHeat" onclick="tog('Heat')"></div></div>
+      <div class="tog-row"><span class="tog-lbl">AI Analysis</span><div class="tog on" id="togAI" onclick="tog('AI')"></div></div>
+    </div>
+
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-area">
+    <canvas id="mc"></canvas>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="rpanel">
+
+    <div class="sec">
+      <div class="sec-title">// THREAT ASSESSMENT</div>
+      <div class="risk-num" id="riskNum" style="color:var(--green)">08</div>
+      <div class="risk-lbl" id="riskLbl" style="color:var(--green)">LOW RISK</div>
+      <div class="risk-track"><div class="risk-fill" id="riskFill" style="width:8%;background:var(--green)"></div></div>
+      <div class="risk-marks"><span>0</span><span>SAFE</span><span>WARN</span><span>CRIT</span><span>100</span></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">// INTERCEPT RECORD</div>
+      <div class="istat"><div class="istat-ico">🛡️</div><div class="istat-body"><div class="istat-val" id="iTotal">0/0</div><div class="istat-lbl">THREATS NEUTRALISED</div></div></div>
+      <div class="trow"><span class="tk">LAST DRONE ID</span><span class="tv cyan" id="iLastID">—</span></div>
+      <div class="trow"><span class="tk">ALT AT KILL</span><span class="tv" id="iLastAlt">—</span></div>
+      <div class="trow"><span class="tk">KILL ZONE</span><span class="tv" id="iLastZone">—</span></div>
+      <div class="trow"><span class="tk">INTERCEPT SPD</span><span class="tv cyan" id="iLastSpd">—</span></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">// ACTIVE DRONE TELEMETRY</div>
+      <div class="trow"><span class="tk">Drone ID</span><span class="tv cyan" id="tID">—</span></div>
+      <div class="trow"><span class="tk">Position</span><span class="tv" id="tPos">—</span></div>
+      <div class="trow"><span class="tk">Altitude</span><span class="tv" id="tAlt">—</span></div>
+      <div class="trow"><span class="tk">Speed</span><span class="tv warn" id="tSpd">—</span></div>
+      <div class="trow"><span class="tk">Phase</span><span class="tv cyan" id="tPhase">IDLE</span></div>
+      <div class="trow"><span class="tk">Type</span><span class="tv" id="tType">—</span></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">// DEBRIS STATUS</div>
+      <div class="trow"><span class="tk">Fragments</span><span class="tv warn" id="dCount">0</span></div>
+      <div class="trow"><span class="tk">Zone</span><span class="tv green" id="dZone">CLEAR</span></div>
+      <div class="trow"><span class="tk">City Safety</span><span class="tv green" id="dCity">ALL SAFE</span></div>
+      <div class="trow"><span class="tk">Civilians</span><span class="tv green" id="dCiv">18 SAFE</span></div>
+      <div class="dlist" id="dList"></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">// DUAL-SIM COMPARISON</div>
+      <div class="dual">
+        <div class="mini-wrap">
+          <div class="mini-lbl" style="color:var(--green)">WITH AEGIS</div>
+          <canvas id="mcA" width="90" height="60"></canvas>
+          <div class="mini-result" id="mLblA" style="color:var(--green)">—</div>
+        </div>
+        <div class="mini-wrap">
+          <div class="mini-lbl" style="color:var(--red)">NO DEFENSE</div>
+          <canvas id="mcB" width="90" height="60"></canvas>
+          <div class="mini-result" id="mLblB" style="color:var(--red)">—</div>
+        </div>
+      </div>
+      <div class="trow" style="margin-top:8px"><span class="tk">Risk Reduction</span><span class="tv green" id="mReduct">—</span></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">// AI ENGINE LOG</div>
+      <div class="log" id="aiLog"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+'use strict';
+// ─── CANVAS SETUP ───
+const canvas = document.getElementById('mc');
+const ctx    = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  const area = canvas.parentElement;
+  W = canvas.width  = area.clientWidth;
+  H = canvas.height = area.clientHeight;
+  generateCity();
+}
+window.addEventListener('resize', resize);
+
+// ─── STATE ───
+const opts = { Traj:true, Radar:true, Debris:true, Heat:false, AI:true };
+let running = false, animId = null;
+let simTime = 0, simStart = null;
+let radarAngle = 0;
+let threatCount = 0, neutralCount = 0, breachCount = 0;
+
+// Objects
+let drones = [], interceptors = [], debris = [], explosions = [], heatPts = [];
+
+// City
+let buildings = [], people = [];
+let cityX0 = 0, cityX1 = 0;
+
+// Last intercept snapshot
+let lastHit = { id:'—', alt:'—', zone:'—', spd:'—' };
+
+// Mini-sim state
+let miniA = null, miniB = null, miniRunning = false;
+const mctxA = document.getElementById('mcA').getContext('2d');
+const mctxB = document.getElementById('mcB').getContext('2d');
+
+// ─── CITY GENERATION ───
+function generateCity() {
+  buildings = []; people = [];
+  const gY = H - 55;
+  cityX0 = W * 0.35; cityX1 = W * 0.97;
+  let x = cityX0;
+  while (x < cityX1) {
+    const w = 18 + Math.random()*32, h = 28 + Math.random()*110;
+    buildings.push({ x, y: gY-h, w, h, lit: Math.random()>.3 });
+    x += w + 4 + Math.random()*8;
+  }
+  for (let i = 0; i < 18; i++) {
+    const px = cityX0 + Math.random()*(cityX1-cityX0);
+    people.push({ x:px, bx:px, spd:(Math.random()-.5)*.35,
+      sz:2.5+Math.random()*1.5, col:`hsl(${190+Math.random()*80},65%,65%)` });
+  }
+}
+
+// ─── SLIDERS ───
+function upd(id, val, unit) { document.getElementById('v'+id).textContent = val+unit; }
+function updRCS(v) { document.getElementById('vRCS').textContent = ['','Low','Medium','High'][+v]; }
+function tog(k) {
+  opts[k] = !opts[k];
+  const el = document.getElementById('tog'+k);
+  if (opts[k]) el.classList.add('on'); else el.classList.remove('on');
+}
+
+// ─── SCENARIO LOADER ───
+const SCENARIOS = {
+  recon:      { vel:80,  pay:2,  rcs:1, iSpd:400, iRng:75 },
+  kamikaze:   { vel:180, pay:20, rcs:2, iSpd:520, iRng:70 },
+  swarm:      { vel:140, pay:8,  rcs:1, iSpd:600, iRng:80 },
+  loitering:  { vel:100, pay:30, rcs:2, iSpd:480, iRng:65 },
+  stealth:    { vel:220, pay:5,  rcs:1, iSpd:700, iRng:60 },
+};
+function loadScenario(s) {
+  resetSim();
+  const sc = SCENARIOS[s] || SCENARIOS.kamikaze;
+  document.getElementById('slVel').value  = sc.vel;  upd('Vel', sc.vel,' m/s');
+  document.getElementById('slPay').value  = sc.pay;  upd('Pay', sc.pay,' kg');
+  document.getElementById('slRCS').value  = sc.rcs;  updRCS(sc.rcs);
+  document.getElementById('slISpd').value = sc.iSpd; upd('ISpd', sc.iSpd,' m/s');
+  document.getElementById('slIRng').value = sc.iRng; upd('IRng', sc.iRng,'%');
+  aiLog('Scenario loaded: '+s.toUpperCase(), 'cyan');
+}
+
+// ─── DRONE LAUNCH ───
+// Intercept success probability: 90–98% depending on scenario + RCS
+// Occasional dramatic failure (~5–10% chance) keeps it realistic
+function interceptProb() {
+  const rcs   = +document.getElementById('slRCS').value;       // 1=low 2=med 3=high
+  const vel   = +document.getElementById('slVel').value;
+  const iRng  = +document.getElementById('slIRng').value/100;
+  const sc    = document.getElementById('scenSel').value;
+  // Base: 93%
+  let p = 0.93;
+  // Stealth / low RCS harder
+  if (rcs === 1) p -= 0.08;
+  if (rcs === 3) p += 0.04;
+  // Fast drones harder
+  if (vel > 300) p -= 0.06;
+  // Engagement range bonus
+  p += (iRng - 0.7) * 0.2;
+  // Swarm is harder
+  if (sc === 'swarm') p -= 0.05;
+  return Math.min(0.97, Math.max(0.82, p));
+}
+
+function launchDrone() {
+  if (drones.some(d => d.active)) {
+    aiLog('THREAT ALREADY TRACKED — reset to launch new.','warn');
+    setAlert('⚠ RESET FIRST');
+    return;
+  }
+  if (!running) startSim();
+  const sc    = document.getElementById('scenSel').value;
+  const vel   = +document.getElementById('slVel').value;
+  const pay   = +document.getElementById('slPay').value;
+  const rcs   = +document.getElementById('slRCS').value;
+  const gY    = H - 55;
+  const tgtX  = W*(0.5 + Math.random()*0.3);
+
+  // How many drones to spawn (swarm = 3)
+  const count = sc === 'swarm' ? 3 : 1;
+  for (let di = 0; di < count; di++) {
+    threatCount++;
+    document.getElementById('hThreat').textContent = threatCount;
+    const spd = (vel * 0.28 / 60) * (1 + (di*0.12));
+    // Entry edge
+    let sx, sy, vx, vy;
+    const side = Math.random();
+    if (side < 0.5) { sx=-20; sy=Math.random()*H*0.55; }
+    else { sx=Math.random()*W*0.35; sy=-20; }
+    const dx=tgtX-sx+(di*30), dy=gY-sy;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    vx=(dx/d)*spd; vy=(dy/d)*spd;
+
+    const drone = {
+      id:'D-'+threatCount+(di?'-'+di:''),
+      x:sx, y:sy, vx, vy,
+      trail:[], active:true, intercepted:false,
+      payload:pay, rcs, scenario:sc, vel,
+      age:0
+    };
+    drones.push(drone);
+    aiLog('DRONE DETECTED: '+drone.id+' | '+sc.toUpperCase()+' | PAYLOAD '+pay+'kg | RCS: '+['','LOW','MED','HIGH'][rcs],'red');
+
+    // Schedule auto-intercept with realistic delay
+    scheduleIntercept(drone);
+  }
+  startMiniSim(vel, pay);
+  updateRisk();
+}
+
+function scheduleIntercept(drone) {
+  const delay = 500 + Math.random()*400;
+  setTimeout(() => {
+    if (drone.active && !drone.intercepted) launchInterceptor(drone);
+  }, delay);
+}
+
+function launchInterceptor(target) {
+  if (!running) return;
+  const iSpd  = +document.getElementById('slISpd').value * 0.28/60;
+  const iRng  = +document.getElementById('slIRng').value/100;
+  const gY    = H - 55;
+  const g     = 0.03;
+
+  // Predict intercept point — try to get left of city, high altitude
+  let tSteps = 20;
+  for (let t = 8; t < 150; t += 4) {
+    const px = target.x + target.vx*t;
+    const py = target.y + target.vy*t;
+    if (px < cityX0-15 && py < H*0.5) { tSteps = t; break; }
+    if (px < cityX0)                    { tSteps = t; break; }
+  }
+  const predX = target.x + target.vx*tSteps*iRng;
+  const predY = Math.min(target.y + target.vy*tSteps*iRng, H*0.4);
+
+  // Interceptor spawn — various platform positions
+  const side = Math.random();
+  let lx, ly;
+  if      (side < 0.4) { lx=W*(0.45+Math.random()*0.4); ly=gY; }
+  else if (side < 0.7) { lx=W+10; ly=H*(0.25+Math.random()*0.4); }
+  else                 { lx=W*(0.65+Math.random()*0.25); ly=gY; }
+
+  const dx=predX-lx, dy=predY-ly, dist=Math.sqrt(dx*dx+dy*dy)||1;
+  const inter = {
+    id:'I-'+(interceptors.length+1), x:lx, y:ly,
+    vx:dx/dist*iSpd, vy:dy/dist*iSpd,
+    trail:[], active:true, target,
+    seekR: target.scenario==='stealth' ? 18 : 28,
+    willHit: true, // 100% intercept rate
+    age:0
+  };
+  interceptors.push(inter);
+  aiLog('Interceptor '+inter.id+' launched → '+target.id+' | SPD '+Math.round(iSpd*60/0.28)+'m/s','green');
+}
+
+// ─── MAIN SIMULATION LOOP ───
+function startSim() { running=true; simStart=Date.now(); animId=requestAnimationFrame(loop); }
+
+function loop() {
+  if (!running) return;
+  simTime++;
+  if (simStart) {
+    const s=Math.floor((Date.now()-simStart)/1000);
+    document.getElementById('hTime').textContent=
+      String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+  }
+  if (Math.random()<.015) radarAngle=(radarAngle+0.04)%(Math.PI*2);
+  else radarAngle=(radarAngle+0.025)%(Math.PI*2);
+
+  updateDrones();
+  updateInterceptors();
+  updateDebris();
+  updateExplosions();
+  draw();
+  updateTelemetry();
+  updateRisk();
+  updateMiniSims();
+  animId=requestAnimationFrame(loop);
+}
+
+function updateDrones() {
+  const gY = H-55;
+  drones.forEach(d => {
+    if (!d.active) return;
+    d.age++;
+    d.x += d.vx; d.y += d.vy;
+    d.trail.push({x:d.x,y:d.y});
+    if (d.trail.length > 60) d.trail.shift();
+    // Hit ground
+    if (d.y >= gY) {
+      d.active = false;
+      if (!d.intercepted) {
+        breachCount++;
+        document.getElementById('hBreach').textContent = breachCount;
+        setAlert('☠ BREACH — '+d.id+' REACHED TARGET');
+        aiLog('BREACH! '+d.id+' reached target!','red');
+        spawnExplosion(d.x, gY, d.payload, true);
+        updateSuccessRate();
+      }
+    }
+    // Off-screen (escape)
+    if (d.x < -60 || d.x > W+60 || d.y < -200) d.active = false;
+  });
+}
+
+function updateInterceptors() {
+  interceptors.forEach(inter => {
+    if (!inter.active) return;
+    inter.age++;
+    // Smart homing — steer toward target
+    if (inter.target && inter.target.active) {
+      const tx=inter.target.x, ty=inter.target.y;
+      const dx=tx-inter.x, dy=ty-inter.y;
+      const d=Math.sqrt(dx*dx+dy*dy)||1;
+      const spd=Math.sqrt(inter.vx*inter.vx+inter.vy*inter.vy);
+      // Blend current velocity with direct vector for natural arc
+      const steer = 0.12;
+      inter.vx = inter.vx*(1-steer) + (dx/d*spd)*steer;
+      inter.vy = inter.vy*(1-steer) + (dy/d*spd)*steer;
+    }
+    inter.x += inter.vx; inter.y += inter.vy;
+    inter.trail.push({x:inter.x,y:inter.y});
+    if (inter.trail.length > 40) inter.trail.shift();
+
+    // Check proximity kill
+    if (inter.target && inter.target.active) {
+      const dx=inter.x-inter.target.x, dy=inter.y-inter.target.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if (dist < inter.seekR) {
+        killDrone(inter, inter.target);
+      }
+    }
+    // Off-screen
+    if (inter.x<-80||inter.x>W+80||inter.y<-200||inter.y>H+80) inter.active=false;
+  });
+}
+
+function killDrone(inter, drone) {
+  drone.active = false; drone.intercepted = true;
+  inter.active = false;
+  neutralCount++;
+  document.getElementById('hNeutral').textContent = neutralCount;
+  updateSuccessRate();
+
+  const altM  = Math.round((H - drone.y) * 2.8);
+  const zone  = altM>600?'HIGH ALT':altM>250?'MID ALT':'LOW ALT';
+  const iSpd  = Math.round(Math.sqrt(inter.vx*inter.vx+inter.vy*inter.vy)*60/0.28);
+
+  lastHit = { id:drone.id, alt:altM+'m', zone, spd:iSpd+'m/s' };
+  document.getElementById('iLastID').textContent   = drone.id;
+  document.getElementById('iLastAlt').textContent  = lastHit.alt;
+  document.getElementById('iLastZone').textContent = zone;
+  document.getElementById('iLastSpd').textContent  = lastHit.spd;
+  document.getElementById('iTotal').textContent    = neutralCount+'/'+threatCount;
+
+  spawnExplosion(drone.x, drone.y, drone.payload, false);
+  spawnDebris(drone.x, drone.y, drone.payload, altM);
+
+  const altF = altM > 600 ? 2.2 : altM > 250 ? 1.4 : 0.9;
+  const cnt = Math.round((4 + altF*6) * Math.min(1.5, drone.payload/10));
+  setAlert('✓ INTERCEPT: '+drone.id+' | '+zone+' | '+cnt+' FRAGMENTS');
+  aiLog('✓ KILLED: '+drone.id+' at '+altM+'m ('+zone+') | '+cnt+' debris fragments','green');
+}
+
+function updateSuccessRate() {
+  if (!threatCount) return;
+  const finished = neutralCount + breachCount;
+  if (!finished) return;
+  const pct = Math.round(neutralCount/finished*100);
+  const el = document.getElementById('hRate');
+  el.textContent = pct+'%';
+  el.style.color = pct>=90?'var(--green)':pct>=75?'var(--amber)':'var(--red)';
+}
+
+// ─── DEBRIS ───
+function spawnDebris(x, y, payload, altM) {
+  const altF  = Math.max(0.4, Math.min(2.2, altM/500));
+  const count = Math.round((4 + altF*8) * Math.min(1.8, payload/10));
+  const szRight = cityX0 - 12;
+  for (let i=0;i<count;i++) {
+    const ang = Math.PI + (Math.random()-.5)*Math.PI*1.3;
+    const spd = 1.5 + Math.random()*4;
+    let vx = Math.cos(ang)*spd, vy = Math.sin(ang)*spd - 1;
+    if (vx > 0) vx = -Math.abs(vx)*0.6;
+    debris.push({
+      id:'F-'+(debris.length+1),
+      x, y, vx, vy,
+      life:1, decay:0.006+Math.random()*0.006,
+      size:1.5+Math.random()*2.5,
+      szRight, contained:false
+    });
+  }
+}
+
+function updateDebris() {
+  const gY=H-55;
+  debris.forEach(p => {
+    if (p.life<=0) return;
+    p.vy += 0.05;
+    p.vx *= 0.99;
+    p.x  += p.vx; p.y += p.vy;
+    p.life -= p.decay;
+    // Containment wall
+    if (p.x > p.szRight) { p.x=p.szRight; p.vx=-Math.abs(p.vx)*0.55; }
+    if (p.y > gY)        { p.y=gY;        p.vy=-Math.abs(p.vy)*0.4; p.vx*=0.85; }
+    p.contained = (p.x <= p.szRight);
+  });
+  debris = debris.filter(p=>p.life>0);
+
+  // Update debris UI
+  const living = debris.filter(p=>p.life>0);
+  const contained = living.every(p=>p.contained);
+  document.getElementById('dCount').textContent = living.length;
+  const zEl=document.getElementById('dZone');
+  const cEl=document.getElementById('dCity');
+  if (living.length===0) {
+    zEl.textContent='CLEAR'; zEl.className='tv green';
+    cEl.textContent='ALL SAFE'; cEl.className='tv green';
+    document.getElementById('dCiv').textContent='18 SAFE';
+    document.getElementById('dCiv').className='tv green';
+  } else if (contained) {
+    zEl.textContent='CONTAINED'; zEl.className='tv warn';
+    cEl.textContent='ALL SAFE'; cEl.className='tv green';
+    document.getElementById('dCiv').textContent='18 SAFE';
+    document.getElementById('dCiv').className='tv green';
+  } else {
+    zEl.textContent='BREACH'; zEl.className='tv red';
+    cEl.textContent='AT RISK'; cEl.className='tv red';
+    document.getElementById('dCiv').textContent='AT RISK';
+    document.getElementById('dCiv').className='tv red';
+  }
+  // Debris list
+  const listEl=document.getElementById('dList');
+  listEl.innerHTML = living.slice(0,12).map(p=>
+    '<div class="ditem"><span class="did">'+p.id+'</span>'+
+    '<span class="dpos">'+Math.round(p.x)+','+Math.round(p.y)+'</span>'+
+    '<span class="dvel">'+Math.round(p.vx*60)+'m/s</span></div>'
+  ).join('');
+}
+
+// ─── EXPLOSIONS ───
+function spawnExplosion(x, y, payload, isGround) {
+  explosions.push({ x, y, r:0, maxR:20+payload*0.8, life:1, isGround });
+}
+function updateExplosions() {
+  explosions.forEach(e=>{e.r+=2;e.life-=0.04;});
+  explosions=explosions.filter(e=>e.life>0);
+}
+
+// ─── TELEMETRY ───
+function updateTelemetry() {
+  const active = drones.find(d=>d.active);
+  const gY=H-55;
+  if (active) {
+    document.getElementById('tID').textContent    = active.id;
+    document.getElementById('tPos').textContent   = Math.round(active.x)+','+Math.round(active.y);
+    document.getElementById('tAlt').textContent   = Math.round((gY-active.y)*2.8)+'m';
+    document.getElementById('tSpd').textContent   = Math.round(Math.sqrt(active.vx*active.vx+active.vy*active.vy)*60/0.28)+'m/s';
+    document.getElementById('tPhase').textContent = active.y<gY*0.3?'HIGH ALT':active.y<gY*0.65?'APPROACH':'TERMINAL';
+    document.getElementById('tType').textContent  = active.scenario.toUpperCase();
+  } else {
+    ['tPos','tAlt','tSpd','tType'].forEach(id=>{document.getElementById(id).textContent='—';});
+    document.getElementById('tID').textContent='—';
+    document.getElementById('tPhase').textContent='IDLE';
+  }
+}
+
+// ─── RISK ───
+function updateRisk() {
+  const activeDrones = drones.filter(d=>d.active&&!d.intercepted);
+  const pay = +document.getElementById('slPay').value;
+  const vel = +document.getElementById('slVel').value;
+  let risk = 8;
+  if (activeDrones.length) {
+    risk = 20 + activeDrones.length*15 + (pay/100)*30 + (vel/600)*20;
+    // Closer to city = more risk
+    activeDrones.forEach(d=>{
+      const dist = Math.max(0, d.x - cityX0);
+      if (d.x > cityX0*0.7) risk += 15;
+    });
+    risk = Math.min(98, Math.round(risk));
+  }
+  const col = risk<30?'var(--green)':risk<60?'var(--amber)':'var(--red)';
+  const lbl = risk<30?'LOW RISK':risk<60?'MODERATE':risk<80?'HIGH RISK':'CRITICAL';
+  document.getElementById('riskNum').textContent = String(risk).padStart(2,'0');
+  document.getElementById('riskNum').style.color = col;
+  document.getElementById('riskLbl').textContent = lbl;
+  document.getElementById('riskLbl').style.color = col;
+  document.getElementById('riskFill').style.width = risk+'%';
+  document.getElementById('riskFill').style.background = col;
+}
+
+// ─── AI LOG ───
+function aiLog(msg, type='') {
+  if (!opts.AI) return;
+  const el=document.getElementById('aiLog');
+  const ts=simStart?String(Math.floor((Date.now()-simStart)/1000)).padStart(4,'0'):'0000';
+  const line=document.createElement('div');
+  line.className='log-line'+(type?' '+type:'');
+  line.textContent='['+ts+'s] '+msg;
+  el.appendChild(line);
+  el.scrollTop=el.scrollHeight;
+  if (el.children.length>120) el.removeChild(el.firstChild);
+}
+
+function setAlert(msg) {
+  const el=document.getElementById('alertMsg');
+  el.textContent=msg;
+  setTimeout(()=>{ if(el.textContent===msg) el.textContent=''; },4000);
+}
+
+// ─── RESET ───
+function resetSim() {
+  drones=[]; interceptors=[]; debris=[]; explosions=[]; heatPts=[];
+  running=false; if(animId){cancelAnimationFrame(animId);animId=null;}
+  simTime=0; simStart=null;
+  updateTelemetry(); updateRisk();
+  setAlert('');
+  document.getElementById('dList').innerHTML='';
+  ['tPos','tAlt','tSpd','tType','iLastID','iLastAlt','iLastZone','iLastSpd'].forEach(id=>{
+    const e=document.getElementById(id); if(e)e.textContent='—';
+  });
+  document.getElementById('tID').textContent='—';
+  document.getElementById('tPhase').textContent='IDLE';
+  document.getElementById('dCount').textContent='0';
+  document.getElementById('hTime').textContent='00:00';
+  miniA=null; miniB=null; miniRunning=false;
+  mctxA.clearRect(0,0,90,60); mctxB.clearRect(0,0,90,60);
+  ['mLblA','mLblB','mReduct'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent='—';});
+  aiLog('System reset. Ready for new deployment.','cyan');
+}
+
+// ─── MAIN DRAW ───
+function draw() {
+  ctx.clearRect(0,0,W,H);
+
+  // Sky gradient
+  const sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#010c18'); sky.addColorStop(1,'#02111f');
+  ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='rgba(0,229,255,.03)'; ctx.lineWidth=1;
+  for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // Radar sweep
+  if (opts.Radar) {
+    const cx=W*0.12, cy=H*0.22, r=Math.min(W,H)*0.16;
+    ctx.beginPath(); ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.strokeStyle='rgba(0,229,255,.12)'; ctx.lineWidth=1; ctx.stroke();
+    for(let ri=r/3;ri<=r;ri+=r/3){
+      ctx.beginPath(); ctx.arc(cx,cy,ri,0,Math.PI*2);
+      ctx.strokeStyle='rgba(0,229,255,.06)'; ctx.stroke();
+    }
+    // Sweep
+    const grad=ctx.createConicalGradient?null:null;
+    ctx.save();
+    ctx.translate(cx,cy);
+    for(let a=0;a<Math.PI/2;a+=0.04){
+      ctx.beginPath();ctx.moveTo(0,0);
+      ctx.arc(0,0,r,radarAngle-a,radarAngle-a+0.04);
+      ctx.closePath();
+      ctx.fillStyle=`rgba(0,229,255,${0.18*(1-a/(Math.PI/2))})`;
+      ctx.fill();
+    }
+    ctx.restore();
+    // Blips for active drones
+    drones.filter(d=>d.active).forEach(d=>{
+      const bx=cx+(d.x-W*0.12)/W*r*1.5, by=cy+(d.y-H*0.22)/H*r*2;
+      ctx.beginPath(); ctx.arc(bx,by,3,0,Math.PI*2);
+      ctx.fillStyle='var(--red)'; ctx.fill();
+      ctx.shadowColor='var(--red)'; ctx.shadowBlur=6; ctx.fill(); ctx.shadowBlur=0;
+    });
+    // RADAR label
+    ctx.fillStyle='rgba(0,229,255,.5)'; ctx.font='bold 10px Share Tech Mono';
+    ctx.textAlign='center'; ctx.fillText('RADAR', cx, cy+r+14);
+    ctx.textAlign='left';
+  }
+
+  // Heatmap
+  if (opts.Heat && heatPts.length) {
+    heatPts.forEach(p=>{
+      const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,30);
+      g.addColorStop(0,'rgba(255,0,0,0.15)'); g.addColorStop(1,'rgba(255,0,0,0)');
+      ctx.fillStyle=g; ctx.fillRect(p.x-30,p.y-30,60,60);
+    });
+  }
+
+  // Containment wall
+  const szR=cityX0-12;
+  ctx.setLineDash([6,4]);
+  ctx.strokeStyle='rgba(118,255,3,.3)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(szR,0); ctx.lineTo(szR,H);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(118,255,3,.18)'; ctx.font='bold 10px Share Tech Mono';
+  ctx.save(); ctx.translate(szR-8,H*0.5); ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center'; ctx.fillText('SAFE ZONE BOUNDARY',0,0); ctx.restore();
+  ctx.textAlign='left';
+
+  drawGround();
+  drawCity();
+
+  // Debris
+  if (opts.Debris) {
+    debris.forEach(p=>{
+      if(p.life<=0) return;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.size,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,${Math.floor(100+p.life*100)},0,${p.life*0.9})`;
+      ctx.fill();
+    });
+    // Contained banner
+    if (debris.length && debris.every(p=>p.contained||p.life<=0)) {
+      ctx.fillStyle='rgba(118,255,3,.18)';
+      ctx.fillRect(4,H-105,szR-8,22);
+      ctx.fillStyle='var(--green)'; ctx.font='bold 12px Share Tech Mono';
+      ctx.textAlign='center';
+      ctx.fillText('✓ DEBRIS CONTAINED — CITY SAFE', szR/2, H-90);
+      ctx.textAlign='left';
+    }
+  }
+
+  // Explosions
+  explosions.forEach(e=>{
+    const g=ctx.createRadialGradient(e.x,e.y,0,e.x,e.y,e.r);
+    g.addColorStop(0,`rgba(255,255,200,${e.life*0.9})`);
+    g.addColorStop(0.3,`rgba(255,120,0,${e.life*0.7})`);
+    g.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill();
+  });
+
+  // Trails + shapes
+  if (opts.Traj) {
+    drones.filter(d=>d.active).forEach(d=>drawTrail(d.trail,'rgba(255,80,0,',0.7));
+    interceptors.filter(i=>i.active).forEach(i=>drawTrail(i.trail,'rgba(0,229,255,',0.6));
+  }
+
+  // Draw drones
+  drones.filter(d=>d.active).forEach(d=>drawDroneShape(d));
+  // Draw interceptors
+  interceptors.filter(i=>i.active).forEach(i=>drawInterceptorShape(i));
+
+  // People
+  drawPeople();
+
+  // Intercept flash
+  if (neutralCount>0 && simTime%60<15) {
+    ctx.fillStyle='rgba(118,255,3,.06)';
+    ctx.fillRect(0,0,W,H);
+  }
+}
+
+function drawTrail(trail, colorBase, maxA) {
+  trail.forEach((pt,i)=>{
+    const a=((i+1)/trail.length)*maxA;
+    ctx.beginPath(); ctx.arc(pt.x,pt.y,1.5,0,Math.PI*2);
+    ctx.fillStyle=colorBase+a+')'; ctx.fill();
+  });
+}
+
+function drawGround() {
+  const gY=H-55;
+  // Ground gradient
+  const grd=ctx.createLinearGradient(0,gY,0,H);
+  grd.addColorStop(0,'#1a2a18'); grd.addColorStop(1,'#0d1a0c');
+  ctx.fillStyle=grd; ctx.fillRect(0,gY,W,H-gY);
+  ctx.strokeStyle='rgba(118,255,3,.15)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(0,gY); ctx.lineTo(W,gY); ctx.stroke();
+}
+
+function drawCity() {
+  const gY=H-55;
+  buildings.forEach(b=>{
+    // Building body
+    ctx.fillStyle='#0a1a2a';
+    ctx.fillRect(b.x,b.y,b.w,b.h);
+    // Edge glow
+    ctx.strokeStyle='rgba(0,229,255,.18)';
+    ctx.lineWidth=1;
+    ctx.strokeRect(b.x,b.y,b.w,b.h);
+    // Windows
+    const rows=Math.floor(b.h/14), cols=Math.max(1,Math.floor(b.w/10));
+    for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) {
+      const wx=b.x+3+c*10, wy=b.y+5+r*13;
+      if(wx+6<b.x+b.w && wy+6<b.y+b.h) {
+        ctx.fillStyle=b.lit?`rgba(255,240,140,${0.3+Math.random()*0.05})`:'rgba(20,30,40,.8)';
+        ctx.fillRect(wx,wy,6,6);
+      }
+    }
+  });
+  // Ground road
+  ctx.fillStyle='#0e1e12';
+  ctx.fillRect(cityX0,gY,cityX1-cityX0,55);
+  ctx.strokeStyle='rgba(255,255,100,.08)'; ctx.lineWidth=1; ctx.setLineDash([8,8]);
+  ctx.beginPath(); ctx.moveTo(cityX0,gY+28); ctx.lineTo(cityX1,gY+28); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+function drawPeople() {
+  const gY=H-55;
+  people.forEach(p=>{
+    p.x += p.spd;
+    if (p.x>cityX1-5) p.spd=-Math.abs(p.spd);
+    if (p.x<cityX0+5) p.spd= Math.abs(p.spd);
+    const s=p.sz;
+    // Body
+    ctx.fillStyle=p.col;
+    ctx.fillRect(p.x-s/2, gY+4, s, s*2.5);
+    // Head
+    ctx.beginPath(); ctx.arc(p.x, gY+2, s*0.8, 0, Math.PI*2);
+    ctx.fill();
+    // Safe aura when debris active
+    if (debris.length) {
+      ctx.beginPath(); ctx.arc(p.x, gY+s, s*2.5, 0, Math.PI*2);
+      ctx.strokeStyle='rgba(118,255,3,.35)'; ctx.lineWidth=1; ctx.stroke();
+    }
+  });
+  // Civilians label
+  if (people.length) {
+    ctx.fillStyle='rgba(118,255,3,.7)'; ctx.font='bold 11px Share Tech Mono';
+    ctx.textAlign='center';
+    const mx=(cityX0+cityX1)/2;
+    ctx.fillText('✓ '+people.length+' CIVILIANS — ALL SAFE', mx, gY+50);
+    ctx.textAlign='left';
+  }
+}
+
+// ─── DRONE SHAPE — UAV/quadcopter-style ───
+function drawDroneShape(d) {
+  if (!d.active) return;
+  const x=d.x, y=d.y;
+  const ang = Math.atan2(d.vy, d.vx);
+  const sc = d.scenario;
+  ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+
+  const bodyCol = sc==='stealth'?'#334455':sc==='kamikaze'?'#cc2200':'#1a3a5c';
+  const glowCol = sc==='stealth'?'#445566':sc==='kamikaze'?'#ff4400':'#00aaff';
+
+  ctx.shadowColor=glowCol; ctx.shadowBlur=10;
+
+  if (sc==='loitering'||sc==='kamikaze') {
+    // Fixed-wing style
+    ctx.fillStyle=bodyCol;
+    // Fuselage
+    ctx.beginPath();
+    ctx.moveTo(14,0); ctx.lineTo(-10,3); ctx.lineTo(-10,-3); ctx.closePath(); ctx.fill();
+    // Wings
+    ctx.fillStyle=bodyCol;
+    ctx.beginPath();
+    ctx.moveTo(0,0); ctx.lineTo(-8,12); ctx.lineTo(-12,12); ctx.lineTo(-6,0); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(0,0); ctx.lineTo(-8,-12); ctx.lineTo(-12,-12); ctx.lineTo(-6,0); ctx.closePath(); ctx.fill();
+    // Tail
+    ctx.beginPath();
+    ctx.moveTo(-10,0); ctx.lineTo(-16,6); ctx.lineTo(-16,-6); ctx.closePath(); ctx.fill();
+    // Engine glow
+    ctx.fillStyle=sc==='kamikaze'?'#ff6600':'#00ccff';
+    ctx.beginPath(); ctx.arc(-11,0,2.5,0,Math.PI*2); ctx.fill();
+  } else {
+    // Multirotor / quad style
+    ctx.fillStyle=bodyCol;
+    ctx.beginPath(); ctx.rect(-5,-5,10,10); ctx.fill();
+    // Arms
+    const armAngles=[Math.PI/4, 3*Math.PI/4, -Math.PI/4, -3*Math.PI/4];
+    armAngles.forEach(aa=>{
+      const ax=Math.cos(aa)*12, ay=Math.sin(aa)*12;
+      ctx.strokeStyle=bodyCol; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(ax,ay); ctx.stroke();
+      // Rotor disc
+      ctx.beginPath(); ctx.arc(ax,ay,5,0,Math.PI*2);
+      ctx.strokeStyle=glowCol+'99'; ctx.lineWidth=1; ctx.stroke();
+      // Spinning rotor blades
+      const rph = (d.age*0.25+aa)%(Math.PI*2);
+      ctx.strokeStyle=glowCol; ctx.lineWidth=1.2;
+      ctx.beginPath();
+      ctx.moveTo(ax+Math.cos(rph)*5,ay+Math.sin(rph)*5);
+      ctx.lineTo(ax+Math.cos(rph+Math.PI)*5,ay+Math.sin(rph+Math.PI)*5);
+      ctx.stroke();
+    });
+    // Camera/payload pod
+    ctx.fillStyle='#cc2200';
+    ctx.beginPath(); ctx.arc(0,0,3,0,Math.PI*2); ctx.fill();
+  }
+
+  ctx.shadowBlur=0;
+
+  // ID label
+  ctx.rotate(-ang);
+  ctx.fillStyle='rgba(255,80,0,.9)'; ctx.font='bold 10px Share Tech Mono';
+  ctx.textAlign='center'; ctx.fillText(d.id, 0, -16);
+  if (sc==='stealth') {
+    ctx.fillStyle='rgba(100,150,200,.6)'; ctx.font='9px Share Tech Mono';
+    ctx.fillText('STEALTH', 0, -26);
+  }
+  ctx.textAlign='left';
+  ctx.restore();
+}
+
+// ─── INTERCEPTOR SHAPE — missile/kinetic kill vehicle ───
+function drawInterceptorShape(i) {
+  if (!i.active) return;
+  const x=i.x, y=i.y;
+  const ang=Math.atan2(i.vy,i.vx);
+  ctx.save(); ctx.translate(x,y); ctx.rotate(ang);
+  ctx.shadowColor='#00e5ff'; ctx.shadowBlur=14;
+
+  // Body
+  ctx.fillStyle='#00e5ff';
+  ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(-8,3); ctx.lineTo(-8,-3); ctx.closePath(); ctx.fill();
+  // Fins
+  ctx.fillStyle='#76ff03';
+  ctx.beginPath(); ctx.moveTo(-6,0); ctx.lineTo(-12,7); ctx.lineTo(-10,0); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-6,0); ctx.lineTo(-12,-7); ctx.lineTo(-10,0); ctx.closePath(); ctx.fill();
+  // Exhaust plume
+  const pLen = 8+Math.random()*6;
+  const grad=ctx.createLinearGradient(-8,0,-8-pLen,0);
+  grad.addColorStop(0,'rgba(118,255,3,.9)');
+  grad.addColorStop(1,'rgba(0,229,255,0)');
+  ctx.fillStyle=grad;
+  ctx.beginPath(); ctx.moveTo(-8,3); ctx.lineTo(-8-pLen,0); ctx.lineTo(-8,-3); ctx.closePath(); ctx.fill();
+
+  ctx.shadowBlur=0;
+  // ID label
+  ctx.rotate(-ang);
+  ctx.fillStyle='rgba(0,229,255,.85)'; ctx.font='bold 10px Share Tech Mono';
+  ctx.textAlign='center'; ctx.fillText(i.id, 0, -14);
+  ctx.textAlign='left';
+  ctx.restore();
+}
+
+// ─── MINI SIMULATIONS ───
+function startMiniSim(vel, pay) {
+  const spd = vel*0.28/60;
+  miniA = buildMini(spd, pay, true);
+  miniB = buildMini(spd, pay, false);
+  miniRunning = true;
+}
+
+function buildMini(spd, pay, hasAegis) {
+  const cX=90, cY=60;
+  return {
+    dx:-20, dy:5, vx:spd*0.8, vy:spd*0.3,
+    ix:90,iy:50, ivx:-spd*1.4,ivy:-spd*0.8,
+    intercepted:false, done:false, pay,
+    hasAegis, hit:false, riskScore:0,
+    t:0, cX, cY
+  };
+}
+
+function updateMiniSims() {
+  if (!miniRunning || !miniA || !miniB) return;
+  [miniA, miniB].forEach((m,mi)=>{
+    if (m.done) return;
+    m.t++;
+    m.dx += m.vx; m.dy += m.vy*0.8;
+    if (m.hasAegis && !m.intercepted) {
+      m.ix += m.ivx; m.iy += m.ivy;
+      const dx=m.ix-m.dx, dy=m.iy-m.dy;
+      if (Math.sqrt(dx*dx+dy*dy) < 6) {
+        m.intercepted=true; m.done=true; m.riskScore=5+Math.floor(Math.random()*15);
+      }
+    }
+    if (m.dy >= m.cY-8) { m.done=true; m.hit=!m.intercepted; m.riskScore=m.hasAegis?15:85+m.pay/2; }
+  });
+
+  if (miniA) drawMini(mctxA, miniA, true);
+  if (miniB) drawMini(mctxB, miniB, false);
+
+  if (miniA && miniA.done) {
+    const lbl=document.getElementById('mLblA');
+    lbl.textContent=miniA.intercepted?'NEUTRALISED':'IMPACT';
+    lbl.style.color=miniA.intercepted?'var(--green)':'var(--red)';
+  }
+  if (miniB && miniB.done) {
+    const lbl=document.getElementById('mLblB');
+    lbl.textContent='IMPACT';
+    lbl.style.color='var(--red)';
+  }
+  if (miniA&&miniA.done&&miniB&&miniB.done) {
+    const red=Math.round(Math.max(0,miniB.riskScore-miniA.riskScore));
+    const el=document.getElementById('mReduct');
+    el.textContent='-'+red+'% RISK';
+    el.className='tv green';
+  }
+}
+
+function drawMini(c, m, aegis) {
+  c.clearRect(0,0,90,60);
+  c.fillStyle='#010c14'; c.fillRect(0,0,90,60);
+  // City
+  c.fillStyle='#0a1a2a';
+  c.fillRect(35,10,55,45);
+  c.strokeStyle='rgba(0,229,255,.2)'; c.lineWidth=1;
+  c.strokeRect(35,10,55,45);
+  // Ground
+  c.fillStyle='#1a2a18'; c.fillRect(0,52,90,8);
+  // Drone
+  if (!m.done || m.intercepted) {
+    c.beginPath(); c.arc(m.dx, m.dy, 3, 0, Math.PI*2);
+    c.fillStyle=m.intercepted?'rgba(255,60,0,.3)':'var(--red)'; c.fill();
+  }
+  // Interceptor
+  if (aegis && !m.intercepted) {
+    c.beginPath(); c.arc(m.ix, m.iy, 2.5, 0, Math.PI*2);
+    c.fillStyle='var(--cyan)'; c.fill();
+  }
+  // Result flash
+  if (m.done && m.intercepted) {
+    const g=c.createRadialGradient(m.dx,m.dy,0,m.dx,m.dy,12);
+    g.addColorStop(0,'rgba(118,255,3,.8)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=g; c.fillRect(m.dx-12,m.dy-12,24,24);
+  }
+  if (m.done && m.hit) {
+    const g=c.createRadialGradient(m.dx,m.dy,0,m.dx,m.dy,14);
+    g.addColorStop(0,'rgba(255,60,0,.9)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    c.fillStyle=g; c.fillRect(m.dx-14,m.dy-14,28,28);
+  }
+}
+
+// ─── INIT ───
+resize();
+aiLog('AEGIS Drone Defense System initialised.','cyan');
+aiLog('Select a drone scenario and press LAUNCH DRONE.','cyan');
+aiLog('Auto-intercept is always active. Success rate: 100%.','green');
+
+// Start radar animation
+(function radarLoop() {
+  radarAngle += 0.022;
+  if (!running) {
+    ctx.clearRect(0,0,W,H);
+    const sky=ctx.createLinearGradient(0,0,0,H);
+    sky.addColorStop(0,'#010c18'); sky.addColorStop(1,'#02111f');
+    ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+    for(let x=0;x<W;x+=50){ctx.strokeStyle='rgba(0,229,255,.03)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+    if(opts.Radar){
+      const cx=W*0.12,cy=H*0.22,r=Math.min(W,H)*0.16;
+      ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);
+      ctx.strokeStyle='rgba(0,229,255,.12)';ctx.lineWidth=1;ctx.stroke();
+      for(let ri=r/3;ri<=r;ri+=r/3){ctx.beginPath();ctx.arc(cx,cy,ri,0,Math.PI*2);ctx.strokeStyle='rgba(0,229,255,.06)';ctx.stroke();}
+      ctx.save();ctx.translate(cx,cy);
+      for(let a=0;a<Math.PI/2;a+=0.04){
+        ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,r,radarAngle-a,radarAngle-a+0.04);ctx.closePath();
+        ctx.fillStyle=`rgba(0,229,255,${0.18*(1-a/(Math.PI/2))})`;ctx.fill();
+      }
+      ctx.restore();
+      ctx.fillStyle='rgba(0,229,255,.4)';ctx.font='bold 10px Share Tech Mono';ctx.textAlign='center';ctx.fillText('RADAR',cx,cy+r+14);ctx.textAlign='left';
+    }
+    if(buildings.length){drawGround();drawCity();}
+  }
+  requestAnimationFrame(radarLoop);
+})();
+</script>
+</body>
+</html>
