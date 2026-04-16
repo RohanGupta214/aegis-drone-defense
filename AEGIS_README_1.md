@@ -3,7 +3,7 @@
 > **IEEE Student Competition 2025 — Preliminary Round Winner**  
 > Team SkyNetra · Aerospace & Defense Technology Track · SDG 16
 
-**[▶ Open Live Simulation](https://your-username.github.io/aegis-drone-defense)** ← *(update this link after GitHub Pages is enabled)*
+**[▶ Open Live Simulation](https://RohanGupta214.github.io/aegis-drone-defense)**
 
 ---
 
@@ -28,7 +28,7 @@ AEGIS removes every one of those barriers. A defense instructor anywhere in the 
 Open `index.html` in any browser. No installation required.
 
 Or visit the live hosted version:  
-🔗 `https://your-username.github.io/aegis-drone-defense`
+🔗 `https://RohanGupta214.github.io/aegis-drone-defense`
 
 ---
 
