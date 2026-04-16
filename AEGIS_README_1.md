@@ -90,7 +90,7 @@ Single HTML file — zero external dependencies
 AEGIS was submitted to the **IEEE Student Competition 2025** under the Aerospace & Defense Technology track, aligned with **SDG 16 — Peace, Justice & Strong Institutions.**
 
 - ✅ **Preliminary Round — Winner**
-- 🌏 **Shortlisted for international presentation — Malaysia 2025**
+- 🌏 **Shortlisted for international presentation — Indonesia 2026**
 - Team: **SkyNetra** — Rohan Gupta (Team Lead) & Aryan Gupta
 
 ---
